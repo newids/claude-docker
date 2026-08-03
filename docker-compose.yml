@@ -1,0 +1,14 @@
+# Compose for docker with claude-code 컨테이너
+# 클로드 코드를 설치하고 실행하는 Ubuntu 기반 서비스입니다.
+services:
+  dev:
+    build:
+      context: .
+      args:
+        UID: ${UID:-1000}
+        GID: ${GID:-1000}
+    image: claude-docker
+    volumes:
+      - ~/workspace:/home/user/workspace
+    stdin_open: true # -i 역할
+    tty: true        # -t 역할
