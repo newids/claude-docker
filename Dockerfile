@@ -12,6 +12,7 @@ RUN apt update && apt install -y \
     sudo \
     ca-certificates \
     openssl \
+    python3 python3-pip python3-venv \
     && rm -rf /var/lib/apt/lists/*
 
 # PATH 설정
@@ -38,9 +39,10 @@ RUN curl -fsSL https://claude.ai/install.sh | bash
 
 ENV PATH="/home/user/.local/bin:${PATH}"
 
+ENV LANG=ko_KR.UTF-8
+
 RUN git config --global user.email "newids@gmail.com"
 
 RUN git config --global user.name "Jeanseok Choi"
 
 RUN git config --global init.defaultBranch main
-
