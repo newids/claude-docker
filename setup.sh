@@ -8,4 +8,4 @@ rm -rf keys/
 
 git --version
 
-claude --version
+source ~/.zshrc
