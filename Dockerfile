@@ -10,6 +10,7 @@ RUN apt update && apt install -y \
     gh \
     curl \
     sudo \
+    locales \
     ca-certificates \
     openssl \
     python3 python3-pip python3-venv \
@@ -17,6 +18,8 @@ RUN apt update && apt install -y \
 
 # PATH 설정
 ENV PATH="/root/.local/bin:${PATH}"
+
+RUN locale-gen ko_KR.UTF-8 && update-locale LANG=ko_KR.UTF-8
 
 # 로컬 볼륨 바인딩 시 권한 충돌을 막기 위해 UID, GID를 인자로 받음    
 ARG UID=1000
