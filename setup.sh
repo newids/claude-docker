@@ -1,10 +1,6 @@
 cat zshrc >> ~/.zshrc
 
-unzip keys.zip
-
-mv keys/* ~/.ssh
-
-rm -rf keys/
+unzip keys.zip && mkdir -p ~/.ssh && mv keys/* ~/.ssh && rm -rf keys/
 
 git --version
 git config --global user.email "newids@gmail.com"
