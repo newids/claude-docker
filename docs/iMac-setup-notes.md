@@ -32,6 +32,8 @@ AppleEnabledThirdPartyInputSources = (
 - 2차(5dad035): `TISEnableInputSource` 로 켜고 HIToolbox 에도 저장. 서드파티 승인 확인 창이 뜸.
 - 3차(9457216): `com.apple.inputsources` 에 저장 + 배포 알림 + TextInputMenuAgent 재시작. 목록에는 보이지만 선택이 안 됨(아래).
 - 4차(2026-09-21): 저장은 3차와 같고, 전파를 TIS API(`TISDisableInputSource`)로 바꿈. 아래 조사 결과에 따른 것.
+- 5차(2026-09-21): 실습 iMac 에서 4차가 실패. 덤 배열을 구름 로마자(`system`)로 바꾸고, 요청하지 않았는데
+  켜져 있는 구름 배열이 없어질 때까지 끄기를 되풀이하도록 바꿈. 아래 2차 조사 참고.
 
 ## 2026-09-21 조사: 목록에는 보이는데 동작하지 않는 문제
 
@@ -87,8 +89,58 @@ AppleEnabledThirdPartyInputSources = (
 - 끝 상태: `com.apple.inputsources` 에 구름 IM + han2 + han3final 만 있음(덤 배열 없음), HIToolbox 에 구름 항목 없음,
   남은 osascript 프로세스 없음. 실행 시간 약 1.8초. 확인 창 없음.
 
+## 2026-09-21 2차 조사: 실습 iMac 에서 구름 로마자가 남고 전파가 안 되는 문제
+
+### 증상 (사용자 보고, 실습 iMac)
+
+- 메뉴 막대에 로마자 아이콘이 나타났다가 입력 모드에 들어가면 사라진다.
+- 입력란 아래 입력 소스 전환 메뉴에 구름이 보이지 않고 ABC 의 `A` 만 있다 (= 실행 중인 앱에 전파 안 됨).
+- System Settings 목록: ABC, **구름 로마자**, 구름 두벌식. 구름 로마자는 스크립트가 쓴 적이 없다.
+- 구름 로마자와 구름 두벌식을 지우고 구름 두벌식만 다시 추가하면 정상 동작한다.
+
+### 확인한 사실
+
+1. `Gureum.app/Contents/Info.plist` 의 `ComponentInputModeDict:tsInputModeListKey` 에서
+   `tsInputModeDefaultStateKey` 가 참인 배열은 **`han2`(두벌식)와 `system`(로마자) 둘뿐**이다.
+   로그인 에이전트가 `TISEnableInputSource` 로 구름 입력기를 켜면 macOS 가 이 둘을 자동으로 켠다.
+   실습 iMac 의 목록 `ABC + 구름 로마자 + 구름 두벌식` 이 정확히 이 상태다.
+2. `system` 은 `tsInputModeScriptKey = smRoman`, `tsInputModePrimaryInScriptKey = true` 다. 켜져 있으면
+   로마자 자리를 ABC 대신 차지해 메뉴 막대에 "로마자"가 뜨고 앱의 입력 소스 전환이 어긋난다.
+   (`ko.lproj/InfoPlist.strings`: `system` = "로마자", `hanroman` = "한글 로마자",
+   `colemak`/`dvorak`/`qwerty` = "… (제거예정)")
+3. **이미 꺼져 있는 입력 소스에 `TISDisableInputSource` 를 부르면 아무 일도 일어나지 않는다.**
+   반환값은 `noErr`(0)이지만 상태 변화가 없으니 전파도 없다. 미리 띄워 둔 감시 프로세스가 10초 내내
+   `pending` 이었다. 4차의 덤 배열(`colemak`)은 목록 파일에 함께 써 두므로 보통은 "켜진" 것으로 읽혀
+   동작했지만, 이 조건이 깨지면 전파와 목록 정리가 둘 다 조용히 실패한다.
+4. `TISCreateInputSourceList(filter, false)` 로 `kTISPropertyBundleID` 를 걸면 지금 켜져 있는 구름 배열
+   전부를 한 번의 osascript 호출(약 0.1초)로 얻을 수 있다.
+5. `defaults import` 직후 `plutil -p ~/Library/Preferences/com.apple.inputsources.plist` 로 보면 방금 지운
+   항목이 남아 있는 것처럼 보인다. cfprefsd 가 아직 디스크에 내리지 않은 것뿐이다. 실제 값은
+   `defaults export com.apple.inputsources -` 로 봐야 한다.
+
+### 적용한 해결 (5차)
+
+1. 덤 배열을 **구름 로마자(`system`)** 로 먼저 고른다(요청 목록에 없을 때). 어차피 꺼야 하는 배열이고,
+   목록 파일에 켜서 쓴 뒤 끄므로 "켜진 것을 끈다"는 전파 조건도 만족한다. `system` 이 요청되었거나
+   없으면 예전처럼 쓰지 않는 배열 아무거나 고른다.
+2. 끄기를 한 번이 아니라 **요청하지 않았는데 켜져 있는 구름 배열이 하나도 없을 때까지** 되풀이한다
+   (최대 4회). 로그인 에이전트나 macOS 가 자동으로 켠 배열까지 함께 정리된다.
+3. 켜진 배열 목록은 `ENABLED_JS` 로 한 번에 읽는다(`stray_modes`).
+
+### 검증 (2026-09-21, 개발용 Mac 에서 실습 iMac 상태를 재현)
+
+- 목록을 `구름 IM + han2 + system` 으로 만들고 전파까지 시켜 실습 iMac 과 같은 상태를 만든 뒤
+  미리 감시 프로세스를 띄우고 `sh iMac-setup.sh` 실행.
+- 감시 프로세스가 본 구름 로마자: `enabled` → 약 3초 뒤 `disabled`. 스크립트 출력에
+  `요청하지 않은 배열 system 끔`, 마지막 줄 `실행 중인 앱과 메뉴 막대에도 반영됨`.
+- 끝 상태: `구름 IM + han2` 만. `sh iMac-setup.sh han3final` 도 같은 결과(`구름 IM + han2 + han3final`),
+  실행 시간 1.9초, HIToolbox 에 구름 항목 없음, 남은 osascript 프로세스 없음.
+
 ## 남은 일 / 주의
 
 - 배포 원본 github.com/newids/mac-setup 에 같은 변경을 반영해야 한다.
 - 로그인 직후 실습 iMac 에서 다시 확인할 것. 이번 검증은 개발용 Mac 에서 했다.
-- 요청 배열이 구름의 모든 배열(15개)이면 덤 배열이 없어 전파를 건너뛴다. 실제로는 일어나지 않는다.
+- 요청 배열이 구름의 모든 배열(16개)이면 덤 배열이 없다. 이때는 요청하지 않은 켜진 배열도 없으므로
+  전파가 일어나지 않는다. 실제로는 일어나지 않는다.
+- 구름 로마자는 재로그인할 때마다 로그인 에이전트 때문에 다시 켜진다. 스크립트는 로그인 후 한 번 실행하는
+  것이 전제다. 재부팅했다면 다시 실행해야 한다.

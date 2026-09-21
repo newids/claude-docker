@@ -30,6 +30,12 @@
   재시작은 이미 실행 중인 앱에 전달되지 않는다. 현재 구현은 쓰지 않는 구름 배열 하나를 덤으로 저장한 뒤
   `TISDisableInputSource` 로 끄는 방식이다. `TISEnableInputSource` 는 서드파티 배열에 대해 System Settings 밖에서는
   무시되거나 확인 창을 띄우므로 쓰지 않는다.
+- **덤 배열은 끄기 전에 반드시 켜져 있어야 한다.** 이미 꺼진 것을 끄면 `noErr` 를 돌려주지만 상태 변화가 없어 전파도
+  없다. 그래서 덤 배열도 목록 파일에 먼저 써 둔다.
+- **구름 로마자(`system`)는 반드시 꺼야 한다.** `tsInputModeDefaultStateKey` 가 참인 배열은 `han2` 와 `system` 뿐이라
+  로그인 에이전트가 구름 입력기를 켜면 macOS 가 이 둘을 자동으로 켠다. `system` 은 smRoman + primaryInScript 라서
+  켜져 있으면 ABC 자리를 가로채 메뉴 막대에 "로마자"가 뜨고 앱의 입력 소스 전환이 깨진다. 현재 구현은 이것을
+  덤 배열로 쓰고, 요청하지 않았는데 켜져 있는 구름 배열이 없어질 때까지 끄기를 되풀이한다.
 - 두벌식(`han2`)은 항상 포함한다. 관리자가 설치한 로그인 에이전트(`kr.codyssey.gureum.init`)가 로그인 때 두벌식을 켜고
   선택하는데, 목록에 없으면 실패하거나 확인 창이 뜬다.
 - 변경 후에는 아래 절차로 실제 Mac 에서 검증한다. 새 프로세스에서 "켜짐"이 나오는 것만으로는 부족하다.
@@ -46,9 +52,12 @@ sh iMac-setup.sh han3final          # 두벌식 + 세벌식 최종
 변경을 받았는지를 본다. 확인용 명령:
 
 ```sh
-plutil -p ~/Library/Preferences/com.apple.inputsources.plist            # 구름 항목 (덤 배열은 없어야 함)
+defaults export com.apple.inputsources -                                # 구름 항목 (덤 배열과 로마자는 없어야 함)
 defaults read com.apple.HIToolbox AppleEnabledInputSources | grep Gureum # 아무것도 안 나와야 함
 ```
+
+`plutil -p ~/Library/Preferences/com.apple.inputsources.plist` 는 cfprefsd 가 아직 디스크에 내리지 않은 옛 내용을
+보여 줄 수 있다. 확인은 `defaults export` 로 한다.
 
 `log show` 는 zsh 에서 내장 명령 `log` 에 가려지므로 `/usr/bin/log` 로 부른다. 이 터미널에 전체 디스크 접근 권한이 없으면
 로그 저장소를 열 수 없다.
