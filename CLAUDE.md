@@ -4,6 +4,9 @@
 
 ## 저장소 개요
 
+저장소 이름은 2026-09-22 에 claude-docker 에서 codyssey-imac 으로 바꿨다. 도커 이미지 이름(`claude-docker`)과
+`~/.zshrc` 에 넣는 표식(`# --- claude-docker zshrc ---`)은 이미 설정된 머신과의 호환을 위해 그대로 둔다.
+
 두 가지가 섞여 있다.
 
 1. **Claude Code 개발 컨테이너** (원래 목적)
