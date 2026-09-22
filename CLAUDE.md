@@ -17,6 +17,10 @@
    - 배포 원본은 별도 저장소 github.com/newids/imac-setup 이고 `https://newids.github.io/imac-setup/iMac-setup.sh` 로 제공된다.
      (mac-setup 에서 이름이 바뀌었다. 옛 주소로 밀면 새 위치를 안내하며 그대로 받아 준다.)
      **이 파일을 고치면 imac-setup 저장소에도 같은 변경을 반영해야 한다.** 그쪽 `index.html` 안내 페이지(정적 HTML, `assets/` 에 CSS·JS)도 같이 본다.
+   - `iMac4newids.sh`: 위 스크립트와 `setup.sh` 를 합친 개인용 버전. 두벌식 없이 세벌식 최종만 넣고, 핫 코너·zsh 프롬프트·
+     ssh 키(`keys.zip.enc`, `encrypt.sh` 로 만든 것)·git·Discord 업데이트 건너뛰기·Terminal 프로파일·Claude Code 까지 설정한다. 같은 주소
+     (`https://newids.github.io/imac-setup/iMac4newids.sh`)로 제공한다. 0~3절 코드는 `iMac-setup.sh` 와 같으므로
+     `iMac-setup.sh` 를 고치면 여기도 같이 고치고, 아래 작업 규칙도 똑같이 적용한다.
    - 설계 결정과 조사 기록은 [docs/iMac-setup-notes.md](docs/iMac-setup-notes.md) 에 있다. 입력 소스 관련 동작을
      바꾸기 전에 반드시 읽을 것. 스크립트 머리말과 3절 주석에도 요약이 있다.
 
