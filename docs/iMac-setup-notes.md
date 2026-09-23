@@ -136,6 +136,71 @@ AppleEnabledThirdPartyInputSources = (
 - 끝 상태: `구름 IM + han2` 만. `sh iMac-setup.sh han3final` 도 같은 결과(`구름 IM + han2 + han3final`),
   실행 시간 1.9초, HIToolbox 에 구름 항목 없음, 남은 osascript 프로세스 없음.
 
+## 2026-09-23 조사: 이더넷 iMac 과 와이파이 노트북을 서로 조작하는 방법
+
+실습실 iMac 은 이더넷, 개인 노트북은 와이파이에 붙어 있다. iMac 은 일반 사용자 계정(관리자 아님),
+노트북은 내 관리자 계정이다. 이 차이가 방향마다 쓸 수 있는 방법을 가른다.
+
+### 먼저 확인: 두 망이 서로 통하는가
+
+유선망과 와이파이가 다른 VLAN 이거나 클라이언트 격리가 걸려 있으면 IP 기반 방법은 전부 막힌다.
+
+```sh
+ipconfig getifaddr en0        # iMac: 이더넷 주소 (와이파이는 en1)
+ping -c 3 <iMac 주소>          # 노트북에서
+```
+
+막혀 있으면 iMac 의 와이파이도 노트북과 같은 SSID 에 붙인다. 와이파이 접속은 일반 사용자도 할 수 있고,
+서비스 순서상 이더넷이 앞이라 인터넷은 그대로 유선을 쓴다. 같은 와이파이 서브넷이면 Bonjour 탐색도 된다.
+Bonjour 는 라우터를 넘지 못하므로 서브넷이 다르면 `vnc://주소` 처럼 IP 를 직접 적어야 한다.
+
+### 방법별 정리
+
+| 방법 | iMac 관리자 | 방향 | 조건 |
+|---|---|---|---|
+| 유니버설 컨트롤 | 불필요 | 양방향(키보드·마우스 공유) | 같은 Apple 계정(2단계 인증), 양쪽 와이파이·블루투스·Handoff 켬, 10 m 이내, 인터넷 공유 중이 아닐 것 |
+| 노트북에 화면 공유·원격 로그인 켜기 | 불필요(노트북만 설정) | iMac → 노트북 | iMac 에서 `open vnc://노트북IP`, `ssh` |
+| iMac 에 화면 공유·원격 로그인 켜기 | **필요** | 노트북 → iMac | 시스템 설정 > 일반 > 공유는 관리자 잠금 |
+| Deskflow / RustDesk / AnyDesk | 설치는 불필요, 권한은 사실상 필요 | 양방향 | 접근성·화면 기록·입력 모니터링(TCC). Big Sur 이후 일반 사용자는 PPPC 프로파일 없이는 관리자 인증 없이 못 켬 |
+
+- 유니버설 컨트롤은 이더넷 Mac 이라도 와이파이 라디오만 켜져 있으면 된다. Apple 문서는 인터넷 공유 중이
+  아닐 것만 조건으로 두고 이더넷 사용은 제한하지 않는다. 와이파이를 끄면 Handoff 는 되어도 키보드·마우스는
+  안 넘어간다는 보고가 있다. 실습이 끝나면 iMac 에서 Apple 계정을 로그아웃한다.
+- Deskflow 계열은 앱을 `~/Applications` 에 두고 실행하는 것까지는 관리자 없이 된다. 문제는 접근성 권한이다.
+  시스템 설정 > 개인정보 보호 및 보안 > 손쉬운 사용에서 스위치를 켤 때 관리자 암호를 요구하면 못 쓴다.
+  화면 기록은 Monterey 12.3 부터 PPPC 프로파일 없이는 일반 사용자가 켤 수 없다(Jamf 커뮤니티 보고).
+  접근성도 같은 방식으로 실습 iMac 에서 직접 확인해야 한다. Deskflow 는 서명이 없어 `xattr -d com.apple.quarantine`
+  가 필요하고, 접근성 목록에 `Deskflow` 와 `deskflow` 를 둘 다 넣어야 한다.
+- Sequoia 15.0 은 방화벽 문제로 Deskflow 가 안 됐지만 15.1 에서 고쳐졌다. 실습 iMac 은 15.7 이라 해당 없다.
+
+### 권장 순서
+
+1. 노트북에서 화면 공유와 원격 로그인을 켠다. iMac → 노트북 방향은 이것으로 끝난다.
+2. iMac 에 Apple 계정으로 로그인하고 유니버설 컨트롤을 켠다. 시스템 설정 > 디스플레이 > 고급 >
+   "근처의 Mac 이나 iPad 로 포인터와 키보드 이동 허용".
+3. 화면 자체가 필요하면 iMac 접근성 권한을 일반 사용자가 켤 수 있는지 시험하고, 안 되면 관리자에게 화면 공유
+   또는 PPPC 프로파일을 요청한다. 관리자는 이미 로그인 에이전트를 배포하고 있으니 프로파일 추가는 어렵지 않다.
+
+### 검증
+
+```sh
+sudo systemsetup -setremotelogin on   # 노트북. 화면 공유는 시스템 설정 > 일반 > 공유에서 켠다
+ssh <노트북사용자>@<노트북IP>            # iMac 에서
+open vnc://<노트북IP>                  # iMac 에서
+ipconfig getifaddr en1                # iMac 와이파이가 켜졌는지 (유니버설 컨트롤 전제)
+```
+
+아직 실습 iMac 에서 검증하지 않았다. 확인할 것: 유선↔와이파이 도달 여부, 일반 사용자의 접근성 스위치 동작.
+
+### 참고
+
+- Apple, Universal Control: https://support.apple.com/en-us/102459
+- MacRumors, Universal Control troubleshooting: https://www.macrumors.com/guide/universal-control-troubleshooting/
+- Deskflow wiki, Running on macOS: https://github.com/deskflow/deskflow/wiki/Running-on-macOS
+- RustDesk, Mac client: https://rustdesk.com/docs/en/client/mac/
+- Jamf community, standard users cannot enable screen recording: https://community.jamf.com/general-discussions-2/macos-monterey-12-3-standard-users-cannot-enable-screen-recording-for-teams-in-privacy-pane-27190
+- Addigy, PPPC for Standard Users: https://support.addigy.com/hc/en-us/articles/4403549601043-Privacy-Preferences-Policy-Control-PPPC-for-Standard-Users
+
 ## 남은 일 / 주의
 
 - 배포 원본 github.com/newids/imac-setup 에 같은 변경을 반영해야 한다. 5차까지 반영 완료(d9fbe04).
