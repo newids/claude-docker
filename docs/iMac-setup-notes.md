@@ -190,7 +190,50 @@ open vnc://<노트북IP>                  # iMac 에서
 ipconfig getifaddr en1                # iMac 와이파이가 켜졌는지 (유니버설 컨트롤 전제)
 ```
 
-아직 실습 iMac 에서 검증하지 않았다. 확인할 것: 유선↔와이파이 도달 여부, 일반 사용자의 접근성 스위치 동작.
+### 실측 (2026-09-23, 노트북에서)
+
+| 기기 | 주소 |
+|---|---|
+| 노트북 와이파이 | 10.19.224.214 (마스크 255.255.0.0, 게이트웨이 10.19.254.254) |
+| iMac 이더넷 | 10.14.2.3 |
+| iMac 와이파이 | 10.19.233.251 |
+
+- 이더넷 주소 10.14.2.3 은 와이파이망에서 닿지 않는다(ping 무응답, 22·5900 모두 닫힘). 유선망과 와이파이망은
+  서로 라우팅되지 않는다고 봐야 한다. **iMac 의 와이파이를 켜는 우회가 필수다.**
+- 와이파이망은 /16 이라 노트북과 iMac 와이파이 주소가 같은 서브넷이다. ping 은 무응답이지만(스텔스 모드로 보임)
+  **22번 포트가 열려 있고 배너는 `SSH-2.0-OpenSSH_9.9`** 다. 관리자가 실습 iMac 에 원격 로그인을 이미 켜 두었다.
+  5900(화면 공유)은 닫혀 있다.
+- Bonjour 로 `_ssh._tcp` 서비스가 146개, `_rfb._tcp`(VNC)는 3개 보인다. 인스턴스 이름은 `c5r8s1.codyssey.kr`
+  처럼 좌석 번호 형식이다. 실습실 iMac 전부가 SSH 를 광고하고 있다는 뜻이다.
+
+따라서 노트북 → iMac 은 iMac 와이파이만 켜면 SSH 로 바로 된다. 위 표의 "iMac 에 원격 로그인 켜기" 행은
+관리자가 이미 해 둔 상태다(화면 공유는 아님).
+
+```sh
+ssh <iMac 계정>@10.19.233.251                     # 노트북에서. 스크립트 실행·파일 전송에 충분
+ssh -L 5901:localhost:5900 <iMac 계정>@10.19.233.251   # 화면 공유가 켜지면 터널로 붙일 때
+```
+
+- 서버가 광고하는 인증 방식은 `publickey,password,keyboard-interactive`. 그런데 실습 계정(`newids7705`)으로
+  **암호를 넣은 뒤 `Connection closed by 10.19.233.251 port 22`** 로 끊긴다. 암호가 틀리면 `Permission denied,
+  please try again` 이 나오므로 암호 문제가 아니다. macOS sshd 는 `/etc/pam.d/sshd` 의 `pam_sacl` 로 원격 로그인
+  허용 사용자(`com.apple.access_ssh` 그룹)를 검사하고, 여기 없으면 인증 후 `Access denied for user ... by PAM
+  account configuration` 으로 연결을 끊는다. 관리자가 원격 로그인을 "다음 사용자만"(기본은 관리자 그룹)으로
+  켜 두었을 가능성이 크다. iMac 에서 확인:
+
+  ```sh
+  dsmemberutil checkmembership -U newids7705 -G com.apple.access_ssh
+  dscl . -read /Groups/com.apple.access_ssh GroupMembership NestedGroups
+  ```
+
+  이 그룹에 넣는 것은 관리자만 할 수 있다. 결국 노트북 → iMac 은 관리자에게 SSH 허용 사용자 추가를 요청하거나
+  유니버설 컨트롤로 간다.
+
+### 결론 (2026-09-23)
+
+관리자에게 요청하는 것은 불가능하다는 전제라 이 조사는 여기서 중단한다. 관리자 없이 남는 길은 유니버설 컨트롤
+뿐이며 실습 iMac 에서 시험하지 않았다. 재개한다면 확인할 것: 위 그룹 확인 결과, 일반 사용자의 접근성 스위치 동작,
+유니버설 컨트롤 동작. iMac 와이파이 주소는 DHCP 라 바뀔 수 있다.
 
 ### 참고
 
