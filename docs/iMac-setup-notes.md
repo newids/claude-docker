@@ -244,6 +244,41 @@ ssh -L 5901:localhost:5900 <iMac 계정>@10.19.233.251   # 화면 공유가 켜�
 - Jamf community, standard users cannot enable screen recording: https://community.jamf.com/general-discussions-2/macos-monterey-12-3-standard-users-cannot-enable-screen-recording-for-teams-in-privacy-pane-27190
 - Addigy, PPPC for Standard Users: https://support.addigy.com/hc/en-us/articles/4403549601043-Privacy-Preferences-Policy-Control-PPPC-for-Standard-Users
 
+## 2026-09-23 조사: 맥북 키보드를 iMac 의 블루투스 키보드로 쓰기
+
+앞 조사에서 SSH 는 관리자 없이 막혔고 유니버설 컨트롤은 Apple 계정과 와이파이가 필요하다. 다른 길로,
+맥북을 블루투스 키보드 장치로 보이게 하면 iMac 쪽은 일반 블루투스 키보드를 페어링하는 것과 같아
+관리자 권한이 필요 없다. macOS 자체에는 이 기능이 없고 서드파티 앱이 해 준다.
+
+| 앱 | 상태 | Mac 을 대상으로 | 비고 |
+|---|---|---|---|
+| KeyPad (Mac App Store, id1491684442) | 2.30, 2026-08 갱신, macOS 11 이상, Tahoe 지원 명시 | 가능 | 무료, Pro 평생 4.99달러. 키보드·트랙패드 |
+| across | macOS 10.7 이상이라고만 적혀 있음 | 가능 | 윈도우 중심 제품. Sequoia 동작 미확인 |
+| Typeeto | 2022-01 이후 갱신 없음 | 가능 | 리뷰에 Big Sur 이후 연결 안 된다는 보고. 제외 |
+| BLEVirtualKeyboard (GitHub kingo132) | 오픈소스 | 불가 | TinyPICO 보드가 따로 필요. 제외 |
+
+### 권장: KeyPad
+
+1. 맥북에 KeyPad 를 설치하고 실행한다. 맥북은 내 관리자 계정이라 블루투스·접근성 권한을 바로 켤 수 있다.
+2. iMac 에서 시스템 설정 > Bluetooth 를 열면 맥북이 키보드 장치로 보인다. 연결한다. 일반 사용자 계정으로 된다.
+3. 맥북에서 KeyPad 를 iMac 으로 전환한 상태에서 타이핑하면 iMac 에 들어간다. 되돌리는 단축키는 앱에서 정한다.
+
+### 주의
+
+- iMac 은 키보드가 하나 붙은 것으로만 보므로 한글 입력은 iMac 쪽 구름 입력기가 처리한다. 맥북의 입력 소스와 무관하다.
+- Apple 계정도 와이파이도 필요 없다. 블루투스만 켜면 된다. 유선망·와이파이망 분리 문제도 비켜 간다.
+- 화면은 넘어오지 않는다. iMac 화면을 보면서 키보드·트랙패드만 쓰는 용도다.
+- 아직 검증하지 않았다. 확인할 것: Sequoia 15.7 실습 iMac 과 실제 페어링, 실습 iMac 이 블루투스 페어링을
+  프로파일로 막아 두었는지.
+
+### 참고
+
+- KeyPad, Mac App Store: https://apps.apple.com/us/app/keypad-bluetooth-keyboard/id1491684442?mt=12
+- KeyPad 안내: https://bluetooth-keyboard.com/
+- across: https://www.acrosscenter.com/
+- Typeeto, Mac App Store: https://apps.apple.com/us/app/typeeto-remote-bt-keyboard/id970502923?mt=12
+- BLEVirtualKeyboard: https://github.com/kingo132/BLEVirtualKeyboard
+
 ## 남은 일 / 주의
 
 - 배포 원본 github.com/newids/imac-setup 에 같은 변경을 반영해야 한다. 5차까지 반영 완료(d9fbe04).
